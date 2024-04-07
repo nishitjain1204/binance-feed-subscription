@@ -11,7 +11,10 @@ ENV PYTHONUNBUFFERED 1
 # install dependencies
 RUN pip install --upgrade pip
 COPY ./requirements.txt .
-RUN pip install -r requirements.txt
-
 # copy project
 COPY . .
+RUN pip install -r requirements.txt
+RUN chmod +x entrypoint.sh
+# Run app.py when the container launches
+ENTRYPOINT ["sh","entrypoint.sh"]
+

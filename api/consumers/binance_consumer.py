@@ -1,50 +1,96 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
 import asyncio,json
 import websockets
-from urllib.parse import parse_qs
-
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 from rest_framework_simplejwt.tokens import AccessToken
+from urllib.parse import parse_qs
+from asgiref.sync import sync_to_async
 
+from channels.generic.websocket import (
+    AsyncJsonWebsocketConsumer,
+)
+from channels.layers import get_channel_layer
 
+from api.models import Subscription
 
-class BinanceConsumer(AsyncWebsocketConsumer):
+class BinanceConsumer(AsyncJsonWebsocketConsumer):
+    
     async def connect(self):
+        
+        """
+        Connect to the websocket
+        """
         
         query_params = parse_qs(self.scope['query_string'].decode())
         jwt_token = query_params.get('token')[0] if 'token' in query_params else None
-        print(self.channel_layer)
+        
         if not jwt_token:
             await self.close()
             return
-        try:
-            access_token = AccessToken(jwt_token)
-        except Exception as e:
-            print(f"JWT token error: {e}")
-            await self.close()
-            return
         
-        channel_layer = get_channel_layer()
-        print(channel_layer)
+        # checks if user is subscribed to that channel group
+        await self.check_subscription(jwt_token)
+        
+        
         await self.channel_layer.group_add(
             "newchannel",
             self.channel_name
         )
+        
         await self.accept()
+       
+        asyncio.create_task(self.send_data_to_group())
+  
+    async def binance_data(self, event):
+        """
+        Handles data coming from the channel group with type `binance_data`
+        """
+        message = event
 
-        # Start subscribing to Binance WebSocket API
-        async def subscribe_to_binance():
-            channel_layer = get_channel_layer()
-            print(channel_layer)
-            async with websockets.connect("wss://dstream.binance.com/stream?streams=btcusd_perp@bookTicker") as ws:
-                while True:
+        # Send the message to the client
+        await self.send(text_data=json.dumps({
+            'channel_message': message
+        }))
+
+    async def send_data_to_group(self):
+        
+        """
+        Sends data to group
+        """
+        
+        channel_layer = get_channel_layer()
+        url = "wss://dstream.binance.com/stream?streams=btcusd_perp@bookTicker"
+        async with websockets.connect(url) as ws:
+            while True:
+                try:
                     response = await ws.recv()
-                    print(response)
                     await channel_layer.group_send(
                                 "newchannel",
-                                json.loads(response)
+                                {"message" : json.loads(response),
+                                    "type" : "binance_data"}
                             )
-
-        asyncio.create_task(subscribe_to_binance())
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+    
+    async def check_subscription(self,jwt_token):
+        
+        try:
+            
+            access_token = (AccessToken(jwt_token))
+            
+            user_id = access_token['user_id']
+            
+            subscription = await sync_to_async(Subscription.objects.get)(user_id=user_id)
+            
+            if subscription.channel_group != "newchannel":
+                await self.close()
+            
+            return True
+        
+        except Exception as e:
+            
+            print(f"JWT token error: {e}")
+            await self.close()
+            return False
+            
+        

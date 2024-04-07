@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,12 +26,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*j6#a_c7$90mgl-1v9ap$een*s(ou5ryl17e#voh#&8o)(*phi'
+SECRET_KEY = os.getenv("SECRET_KEY",'django-insecure-*j6#a_c7$90mgl-1v9ap$een*s(ou5ryl17e#voh#&8o)(*phi')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(os.getenv("DEBUG", default=0))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS").split(" ")
 
 
 # Application definition
@@ -81,9 +85,13 @@ ASGI_APPLICATION = "bfs.asgi.application"
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": os.getenv("SQL_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.getenv("SQL_DATABASE", BASE_DIR / "db.sqlite3"),
+        "USER": os.getenv("SQL_USER", "user"),
+        "PASSWORD": os.getenv("SQL_PASSWORD", "password"),
+        "HOST": os.getenv("SQL_HOST", "localhost"),
+        "PORT": os.getenv("SQL_PORT", "5432"),
     }
 }
 

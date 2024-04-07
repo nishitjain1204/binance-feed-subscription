@@ -20,10 +20,6 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-
-
-
-
 class UserData(AbstractUser):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -40,8 +36,9 @@ class UserData(AbstractUser):
 
     def __str__(self):
         return self.name
-    
 
 class Subscription(models.Model):
     user = models.ForeignKey(UserData, on_delete=models.CASCADE)
     channel_group = models.CharField(max_length=255)
+    class Meta:
+        unique_together = ('user', 'channel_group')

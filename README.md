@@ -9,8 +9,8 @@ To run this project, make sure you have Docker installed on your system.
 1. Clone the repository:
 
 ```bash
-   git clone https://github.com/yourusername/realtime-feed-subscription.git
-   cd realtime-feed-subscription
+   git clone https://github.com/nishitjain1204/binance-feed-subscription.git
+   cd binance-feed-subscription
 ```
 
 2. Build and run the Docker image
@@ -71,6 +71,14 @@ curl --location 'http://127.0.0.1:8000/api/unsubscribe/' \
 
   Websocket to access feed from the channel
   If user is subscribed to the channel using subscribe endpoint data stream is received otherwise it stays open
+
+## Flow
+
+- User registers via the `api/register` endpoint
+- User logs in via the `api/login` endpoint
+- User subscribes to the channel via the `api/subscribe` endpoint
+- User opens a websocket using `ws/feed` by passing the jwt token in params.
+- If User is subscribed to the channel a data stream is received otherwise it gets disconnected with an error code of `403`
 
   
 

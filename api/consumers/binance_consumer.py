@@ -12,6 +12,8 @@ from channels.layers import get_channel_layer
 
 from api.models import Subscription
 
+CHANNEL_NAME = 'binance_streams'
+
 class BinanceConsumer(AsyncJsonWebsocketConsumer):
     
     async def connect(self):
@@ -19,7 +21,8 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
         """
         Connect to the websocket
         """
-        
+        client_ip = self.scope
+        print(client_ip)
         query_params = parse_qs(self.scope['query_string'].decode())
         jwt_token = query_params.get('token')[0] if 'token' in query_params else None
         
@@ -32,49 +35,47 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
         
         
         await self.channel_layer.group_add(
-            "newchannel",
+            CHANNEL_NAME,
             self.channel_name
         )
         
         await self.accept()
        
-        asyncio.create_task(self.send_data_to_group())
+        asyncio.create_task(self.send_data_to_group(instrument="btcusd_perp"))
+        asyncio.create_task(self.send_data_to_group(instrument="ethusd_perp"))
   
     async def binance_data(self, event):
         """
         Handles data coming from the channel group with type `binance_data`
         """
         message = event
+        pass
 
-        # Send the message to the client
-        await self.send(text_data=json.dumps({
-            'channel_message': message
-        }))
-
-    async def send_data_to_group(self):
+    async def send_data_to_group(self,instrument="btcusd_perp"):
         
         """
         Sends data to group
         """
         
         channel_layer = get_channel_layer()
-        url = "wss://dstream.binance.com/stream?streams=btcusd_perp@bookTicker"
+        url = "wss://dstream.binance.com/stream?streams={instrument}@bookTicker".format(
+            instrument=instrument)
         async with websockets.connect(url) as ws:
             while True:
                 try:
                     response = await ws.recv()
                     await channel_layer.group_send(
-                                "newchannel",
+                                CHANNEL_NAME,
                                 {"message" : json.loads(response),
-                                    "type" : "binance_data"}
+                                    "type" : instrument}
                             )
                 except Exception as e:
                     
                     await channel_layer.group_send(
-                                "newchannel",
+                                CHANNEL_NAME,
                                 {"message" : {
                                     "error": "Connection Error",},
-                                    "type" : "binance_data"}
+                                    "type" : instrument}
                             )
                     await self.close()
     
@@ -88,7 +89,7 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
             
             subscription = await sync_to_async(Subscription.objects.get)(user_id=user_id)
             
-            if subscription.channel_group != "newchannel":
+            if subscription.channel_group != CHANNEL_NAME:
                 await self.close()
             
             return True
@@ -102,5 +103,16 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
             )
             await self.close()
             return False
-            
+    
+    async def btcusd_perp(self,event):
+        """
+        Handles data coming from the channel group with type `btcusd_perp`
+        """
+        asyncio.create_task(self.binance_data(event=event))
+    
+    async def ethusd_perp(self,event):
+        """
+        Handles data coming from the channel group with type `ethusd_perp`
+        """
+        asyncio.create_task(self.binance_data(event=event))
         

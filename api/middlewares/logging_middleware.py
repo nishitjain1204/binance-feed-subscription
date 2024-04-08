@@ -22,6 +22,7 @@ class RequestLogMiddleware:
             "server_hostname": socket.gethostname(),
             "request_method": request.method,
             "request_path": request.get_full_path(),
+            
         }
 
         # Only logging "*/api/*" patterns
@@ -31,6 +32,10 @@ class RequestLogMiddleware:
 
         # request passes on to controller
         response = self.get_response(request)
+        
+        user = request.user
+        user_id = user.id if user.is_authenticated else None
+        log_data["user_id"] = user_id
 
         # add runtime to our log_data
         if response and response["content-type"] == "application/json":

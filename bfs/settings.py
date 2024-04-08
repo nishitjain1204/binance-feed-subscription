@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'api.middlewares.logging_middleware.RequestLogMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -154,4 +155,58 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
+}
+
+
+LOG_BASE_PATH = 'logs/'
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            
+            'format': ' '.join([
+                '%(levelname)s : ',
+                'CREATED ON: %(asctime)s',
+                'LINE NO: %(lineno)d',
+                'MESSAGE: %(message)s'
+                            ])
+        },
+        'file': {
+            'format': ' || '.join([
+                'CREATED ON: %(asctime)s',
+                'LEVEL: %(levelname)s',
+                'LOGGER: %(name)s',
+                'PATH: %(pathname)s',
+                'FILE NAME: %(filename)s',
+                'MODULE: %(module)s',
+                'FUNCTION NAME: %(funcName)s',
+                'LINE NO: %(lineno)d',
+                'MESSAGE: %(message)s'
+            ])
+        }
+    },
+    
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console'
+        },
+        'logger.file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'formatter': 'file',
+            'filename': os.path.join(LOG_BASE_PATH, 'logger.log'),
+        },
+    },
+    
+    'loggers': {
+        'logger': {
+            'handlers': ['console', 'logger.file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    
+}
 }

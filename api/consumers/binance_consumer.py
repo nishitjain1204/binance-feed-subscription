@@ -69,8 +69,14 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
                                     "type" : "binance_data"}
                             )
                 except Exception as e:
-                    import traceback
-                    traceback.print_exc()
+                    
+                    await channel_layer.group_send(
+                                "newchannel",
+                                {"message" : {
+                                    "error": "Connection Error",},
+                                    "type" : "binance_data"}
+                            )
+                    await self.close()
     
     async def check_subscription(self,jwt_token):
         
@@ -89,7 +95,11 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
         
         except Exception as e:
             
-            print(f"JWT token error: {e}")
+            await self.send_json(
+                {
+                    "error" : "User is not subscribed to this channel group"
+                }
+            )
             await self.close()
             return False
             

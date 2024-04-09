@@ -22,7 +22,6 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
         Connect to the websocket
         """
         client_ip = self.scope
-        print(client_ip)
         query_params = parse_qs(self.scope['query_string'].decode())
         jwt_token = query_params.get('token')[0] if 'token' in query_params else None
         
@@ -84,6 +83,7 @@ class BinanceConsumer(AsyncJsonWebsocketConsumer):
         try:
             
             access_token = (AccessToken(jwt_token))
+            print(access_token)
             
             user_id = access_token['user_id']
             
